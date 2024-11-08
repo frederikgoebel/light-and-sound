@@ -6,14 +6,8 @@ use esp_idf_svc::hal::{gpio::PinDriver, prelude::Peripherals};
 use ws2812_esp32_rmt_driver::driver::Ws2812Esp32RmtDriver;
 #[no_mangle]
 fn main() {
-    // It is necessary to call this function once. Otherwise some patches to the runtime
-    // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
     esp_idf_svc::sys::link_patches();
-
-    // Bind the log crate to the ESP Logging facilities
     esp_idf_svc::log::EspLogger::initialize_default();
-
-    log::info!("Hello, world!");
 
     let peripherals = Peripherals::take().unwrap();
 
@@ -22,16 +16,18 @@ fn main() {
 
     let pin = PinDriver::input(peripherals.pins.gpio21).unwrap();
 
+    let mut energy: f32 = 0.0;
     loop {
         if pin.is_low() {
-            log::info!("Low");
-            let pixels = std::iter::repeat([0, 0, 0, 0]).take(18).flatten();
-            ws2812.write_blocking(pixels.into_iter()).unwrap();
+            energy -= 0.007;
+            energy = energy.clamp(0.0, 1.0);
         } else {
-            log::info!("High");
-            let pixels = std::iter::repeat([255, 255, 255, 255]).take(18).flatten();
-            ws2812.write_blocking(pixels.into_iter()).unwrap();
+            energy += 0.02;
+            energy = energy.clamp(0.0, 1.0);
         }
+        let v = (energy.powf(2.2) * 255.0) as u8;
+        let pixels = std::iter::repeat([v, v, v, v]).take(18).flatten();
+        ws2812.write_blocking(pixels.into_iter()).unwrap();
         thread::sleep(Duration::from_millis(10));
     }
 }
