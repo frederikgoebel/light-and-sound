@@ -26,7 +26,7 @@ fn main() {
 
     let mut color = OkLch {
         l: 1.0,
-        c: 0.1,
+        c: 0.34,
         h: 0.0,
     };
 
